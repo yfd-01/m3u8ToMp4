@@ -16,7 +16,7 @@ m3u8ToMp4.download("https://demo.com/demo/demo.m3u8", "C:\videos", "video_name")
 import m3u8ToMp4
 
 m3u8ToMp4.download_console()
-#Then input params by console
+#Then type params by console
 ```
 
 ## Module Supported:
