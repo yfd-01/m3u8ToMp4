@@ -91,17 +91,16 @@ class Crawler:
     __attrs__ = ["m3u8_reg", "m3u8_flag", "ts_reg", "tries", "download_base_path", "name", "folder_need", "ts_suffix",
                  "encrypt_method", "encrypt_file", "encrypt_key", "download_queue_length", "completed_queue_length",
                  "has_more_clip", "detect_queue_time", "total_clips", "current_clips", "merge_total",
-                 "single_merge_length", "single_delete_length", "start_time", "download_end_time", "end_time",
+                 "single_delete_length", "start_time", "download_end_time", "end_time",
                  "use_ip_proxy_pool", "crypt_ls", "auto_bitrate", "auto_bitrate_level"]
 
     def __init__(self, folder_need=None, download_queue_length=None, detect_queue_time=None,
-                 single_merge_length=None, single_delete_length=None, auto_bitrate=None, auto_bitrate_level=None):
+                 single_delete_length=None, auto_bitrate=None, auto_bitrate_level=None):
 
         #assign default vaules to params which have not assigned
         folder_need = True if folder_need is None else folder_need
         download_queue_length = 200 if download_queue_length is None else download_queue_length
         detect_queue_time = 10 if detect_queue_time is None else detect_queue_time
-        single_merge_length = 100 if single_merge_length is None else single_merge_length
         single_delete_length = 100 if single_delete_length is None else single_delete_length
         auto_bitrate = False if auto_bitrate is None else auto_bitrate
         auto_bitrate_level = "HIGHER" if auto_bitrate_level is None else auto_bitrate_level
@@ -150,8 +149,6 @@ class Crawler:
         self.current_clips = 0
         # 当前已合成的切片数
         self.merge_total = 0
-        # 单次合并切片数
-        self.single_merge_length = single_merge_length
         # 单次删除切片数
         self.single_delete_length = single_delete_length
 
