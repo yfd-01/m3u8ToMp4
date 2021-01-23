@@ -28,7 +28,7 @@ from .process import Crawler
 from .session import request_get
 from .utils import progress_bar, check_dir_file_valid
 from .exceptions import (
-    RequestError, ResponseStatusError, NameInvalidError, NameRepeatedError
+    RequestError, ResponseStatusError, NameInvalidError, NameRepeatedError, PathNotADirectoryError
 )
 
 __author__ = "VioletYFD"
@@ -44,5 +44,6 @@ __all__ = (
     "RequestError",
     "ResponseStatusError",
     "NameInvalidError",
-    "NameRepeatedError"
+    "NameRepeatedError",
+    "PathNotADirectoryError"
 )

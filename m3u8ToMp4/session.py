@@ -19,7 +19,7 @@ def request_post(url, tries, **kwargs):
     return request_("post", url, tries, **kwargs)
 
 
-def request_(method, url, tries, headers=None, data=None, timeout=None, proxies=None, verify=False):
+def request_(method, url, tries, headers=None, data=None, timeout=60, proxies=None, verify=False):
     index = 0
 
     while index < tries:
@@ -28,7 +28,7 @@ def request_(method, url, tries, headers=None, data=None, timeout=None, proxies=
                 else requests.post(url, headers=headers, data=data, timeout=timeout, proxies=proxies, verify=verify)
 
             return rsp
-        except Exception as e:
+        except Exception:
             timeout += 2
             index += 1
 

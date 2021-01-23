@@ -10,6 +10,7 @@ this module is the implementation core, it contains class `Crawler` detail
 import os
 import re
 import time
+import shutil
 import threading
 import subprocess
 from Crypto.Cipher import AES
@@ -87,13 +88,24 @@ def get_speed_displayed(start_time, download_end_time, end_time, file_path, name
 class Crawler:
     _UNREACHABLE_STOP = False  # 资源完全重试后仍不可达退出标志
 
-    __attrs__ = ["m3u8_reg", "m3u8_flag", "ts_reg", "tries", "download_base_path", "name", "ts_suffix",
+    __attrs__ = ["m3u8_reg", "m3u8_flag", "ts_reg", "tries", "download_base_path", "name", "folder_need", "ts_suffix",
                  "encrypt_method", "encrypt_file", "encrypt_key", "download_queue_length", "completed_queue_length",
                  "has_more_clip", "detect_queue_time", "total_clips", "current_clips", "merge_total",
                  "single_merge_length", "single_delete_length", "start_time", "download_end_time", "end_time",
-                 "use_ip_proxy_pool", "crypt_ls"]
+                 "use_ip_proxy_pool", "crypt_ls", "auto_bitrate", "auto_bitrate_level"]
 
-    def __init__(self):
+    def __init__(self, folder_need=None, download_queue_length=None, detect_queue_time=None,
+                 single_merge_length=None, single_delete_length=None, auto_bitrate=None, auto_bitrate_level=None):
+
+        #assign default vaules to params which have not assigned
+        folder_need = True if folder_need is None else folder_need
+        download_queue_length = 200 if download_queue_length is None else download_queue_length
+        detect_queue_time = 10 if detect_queue_time is None else detect_queue_time
+        single_merge_length = 100 if single_merge_length is None else single_merge_length
+        single_delete_length = 100 if single_delete_length is None else single_delete_length
+        auto_bitrate = False if auto_bitrate is None else auto_bitrate
+        auto_bitrate_level = "HIGHER" if auto_bitrate_level is None else auto_bitrate_level
+
         # m3u8文件判断正则表达式
         self.m3u8_reg = r".*\.m3u8.*"
         # 是否为新的m3u8文件
@@ -109,6 +121,8 @@ class Crawler:
         self.download_base_path = ""
         # 文件夹和最终导出视频文件名
         self.name = ""
+        # 是否视频需要放在文件夹中
+        self.folder_need = folder_need
 
         # ts文件后缀（应对修改后缀）
         self.ts_suffix = "ts"
@@ -123,13 +137,13 @@ class Crawler:
         self.crypt_ls = {"AES-128": AES}
 
         # 执行请求的线程数
-        self.download_queue_length = 200
+        self.download_queue_length = download_queue_length
         # 在一个时间片内完成的线程数
         self.completed_queue_length = 0
         # 是否还有未下载切片
         self.has_more_clip = True
         # 补充线程冷却时间
-        self.detect_queue_time = 10
+        self.detect_queue_time = detect_queue_time
         # 一共需下载的切片数
         self.total_clips = 0
         # 当前下载完成的切片数
@@ -137,9 +151,9 @@ class Crawler:
         # 当前已合成的切片数
         self.merge_total = 0
         # 单次合并切片数
-        self.single_merge_length = 100
+        self.single_merge_length = single_merge_length
         # 单次删除切片数
-        self.single_delete_length = 100
+        self.single_delete_length = single_delete_length
 
         # 标记开始时间
         self.start_time = None
@@ -150,6 +164,11 @@ class Crawler:
 
         # 是否使用代理IP池
         self.use_ip_proxy_pool = False
+
+        # 是否自动选择比特率
+        self.auto_bitrate = auto_bitrate
+        # 自动比特率的默认选择
+        self.auto_bitrate_level = auto_bitrate_level
         
     def __enter__(self):
         return self
@@ -171,33 +190,32 @@ class Crawler:
     def download_video_from_m3u8_p(self, m3u8, download_base_path, name):
         """ 下载m3u8-调用参数版 """
 
-        try:
-            if not utils.check_dir_file_valid(name):
-                raise NameInvalidError
+        if not utils.check_dir_file_valid(name):
+            raise NameInvalidError
+        else:
+            file_path = os.path.join(download_base_path, name)
+            if os.path.exists(file_path):
+                raise NameRepeatedError(name)
             else:
-                file_path = os.path.join(download_base_path, name)
-                if os.path.exists(file_path):
-                    raise NameRepeatedError
-                else:
-                    self.download_base_path = download_base_path
-                    self.name = name
-                    os.makedirs(file_path)
+                if re.match("^[a-zA-Z]:(\\\\[^\\/:\*\?\"<>\|]+)*\\\\?$", file_path) is None:
+                    raise PathNotADirectoryError(file_path)
+                
+                if self.auto_bitrate and self.auto_bitrate_level != "HIGHEST" and self.auto_bitrate_level != "LOWEST":
+                    raise BitrateLevelInvalidError(self.auto_bitrate_level)
+                
+                self.download_base_path = download_base_path
+                self.name = name
 
-        except NameInvalidError:
-            print("【ERROR】 文件名包含特殊字符")
-            exit(-101)
-        except NameRepeatedError:
-            print("【Error】 视频名字已存在")
-            exit(-102)
-        except NotADirectoryError:
-            print("【Error】 无效路径")
-            exit(-103)
+                os.makedirs(file_path)
 
         self.start_time = time.time()
         m3u8 = m3u8.strip(' ')
         file_path, ts_name_ls = self.download_ts_files(self.get_ts_list(m3u8))
 
         self.merge_and_delete_ts_set(file_path, ts_name_ls)
+
+        if not self.folder_need:
+            self.move_video_higher(file_path)
 
     def prepare_download(self):
         """ 接收存储名，创建存储目录 """
@@ -287,15 +305,18 @@ class Crawler:
                 return assemble_new_request(m3u8_ls[0], protocol, host, prefix)
             else:
                 print("【INFO】 检测到有多个m3u8文件: ")
+                if self.auto_bitrate:
+                    choice = len(m3u8_ls) if self.auto_bitrate_level == "HIGHEST" else 1
+                    print("【INFO】 已做比特率自动选择")
+                else:
+                    for index, item in enumerate(m3u8_ls):
+                        print("  " + str(index + 1) + " --- " + item)
 
-                for index, item in enumerate(m3u8_ls):
-                    print("  " + str(index + 1) + " --- " + item)
-
-                while True:
-                    choice_str = input("请选择: ")
-                    choice = int(choice_str)
-                    if choice <= len(m3u8_ls):
-                        break
+                    while True:
+                        choice_str = input("请选择: ")
+                        choice = int(choice_str)
+                        if choice <= len(m3u8_ls):
+                            break
 
                 return assemble_new_request(m3u8_ls[choice - 1], protocol, host, prefix)
 
@@ -355,7 +376,7 @@ class Crawler:
             proxies_ip = proxies_generate.get_proxies_ip(type_, self.total_clips)
             print("【INFO】 IP代理准备完成,已待命IP代理数为: " + str(len(proxies_ip)))
 
-        utils.progress_bar(0, len(ts_ls) - 1, prefix="ts文件集", suffix="下载中...", completed_suffix="ts文件集下载成功!")
+        utils.progress_bar(0, len(ts_ls), prefix="ts文件集", suffix="下载中...", completed_suffix="ts文件集下载成功!")
 
         download_queue = []
 
@@ -397,10 +418,10 @@ class Crawler:
                 time.sleep(self.detect_queue_time)
 
             index = 0
-
             download_queue.clear()
 
         return file_path, ts_name_ls
+    
 
     def download_encrypt_file_handler(self, encrypt_url):
         """ 密钥文件下载处理器 """
@@ -466,7 +487,7 @@ class Crawler:
 
         merge_cmd = "ffmpeg.exe -y -f concat -safe 0 -i " + '"' + os.path.join(file_path, "ts_ls.txt") + '"' + " -c copy " \
                     + '"' + os.path.join(file_path, self.name + ".mp4") + '"'
-        print(merge_cmd)
+
         p = subprocess.Popen(merge_cmd, shell=True, cwd=os.path.abspath(os.path.dirname(__file__)), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print("【INFO】 合并ts文件中...")
         p.communicate()
@@ -498,3 +519,7 @@ class Crawler:
 
         del_cmd = "del /a /f /q ts_ls.txt"
         subprocess.call(del_cmd, shell=True, cwd=file_path)
+
+    def move_video_higher(self, file_path):
+        shutil.move(os.path.join(file_path, self.name + ".mp4"), os.path.join(self.download_base_path, self.name + ".mp4"))
+        shutil.rmtree(file_path)

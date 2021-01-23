@@ -9,7 +9,8 @@ this module is a exception set, which has been used through the while process
 
 
 class Error(Exception):
-    pass
+    def __init__(self, *args):
+        self.args = args
 
 
 class RequestError(Error):
@@ -29,9 +30,31 @@ class ResponseStatusError(RequestError):
 
 
 class NameInvalidError(Error):
-    pass
+    def __str__(self):
+        return '文件名包含特殊字符 - 注意是否有 \ / : * ? " < > |'
 
 
 class NameRepeatedError(Error):
-    pass
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "名字已存在 - " + repr(self.name)
+
+
+class BitrateLevelInvalidError(Error):
+    def __init__(self, Level):
+        self.Level = Level
+
+    def __str__(self):
+        return "无效的自动比特率等级 - " + repr(self.Level)
+
+
+class PathNotADirectoryError(Error):
+    def __init__(self, path):
+        self.path = path
+        
+    def __str__(self):
+        return "不是一个可使用路径 - " + repr(self.path)
+
 
