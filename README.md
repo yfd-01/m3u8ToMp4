@@ -15,9 +15,9 @@ $ python -m pip install m3u8ToMp4 -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```python
 import m3u8ToMp4
 
-m3u8ToMp4.download("https://demo.com/demo/demo.m3u8", "C:\videos", "video_name")  #using default config
+m3u8ToMp4.download("https://demo.com/demo/demo.m3u8", "C:\\videos", "video_name")  #using default config
 
-m3u8ToMp4.download("https://demo.com/demo/demo.m3u8", "C:\videos", "video_name",
+m3u8ToMp4.download("https://demo.com/demo/demo.m3u8", "C:\\videos", "video_name",
               folder_need=False, download_queue_length=500, detect_queue_time=5,
               single_delete_length=200, auto_bitrate=True, auto_bitrate_level="HIGHEST")  #using adjustment params
 ```
