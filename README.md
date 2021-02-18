@@ -34,7 +34,7 @@ m3u8ToMp4.download_console()
 ## Adjustment Parameter Description:
 * ```folder_need```: bool   &emsp;&emsp;&emsp;&emsp;&emsp;  - Whether you need a folder to contain the target video
 * ```download_queue_length```: int   &emsp;&thinsp;   - The number of threads to download the video
-* ```detect_queue_time```： int   &emsp;&emsp;&nbsp;   - The cooldown of replenishing the new threads to replace the threads that have completed the &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp; target in seconds
+* ```detect_queue_time```： int   &emsp;&emsp;&nbsp;   - The cooldown of replenishing the new threads to replace the threads that have completed the target in seconds
 * ```single_delete_length```: int   &emsp;&thinsp;&thinsp;&thinsp;   - The number of slices merged at one time
 * ```auto_bitrate```: bool    &emsp;&emsp;&emsp;&emsp;&nbsp;&thinsp;  - Whether you need a automatic selection if it has several options in video quality
 * ```auto_bitrate_level```: str  &emsp;&emsp;&nbsp;&nbsp;    - The video quality in automatic selection, "HIGHEST" and "LOWEST" only 
