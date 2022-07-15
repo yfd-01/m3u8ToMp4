@@ -1,5 +1,7 @@
-# m3u8ToMp4
-download video by m3u8 url
+# m3u8ToMp4 (DEPRECATED)
+~~download video by m3u8 url~~ <br/>
+**Here is a substitute that supported asynchronous way**</br>
+**<a href='https://github.com/yfd-01/aiom3u8'>aiom3u8</a>**
 
 ## Installing m3u8ToMp4 and Supported Versions:
 m3u8ToMp4 is available on PyPI:
